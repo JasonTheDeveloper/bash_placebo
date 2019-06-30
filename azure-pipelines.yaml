@@ -8,12 +8,27 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+- task: UseRubyVersion@0
+  displayName: 'Setting Ruby Version'
+  inputs:
+    versionSpec: '>= 2.4'
+    addToPath: true
 
 - script: |
     sudo curl -o /usr/local/bin/shunit2 \
       https://raw.githubusercontent.com/kward/shunit2/master/shunit2
-  displayName: 'Installing shUnit2'
+    gem install bashcov
+    gem install simplecov-cobertura
+  displayName: 'Installing Dependencies'
 
 - script: |
-    bash test/placebo.sh
+    bashcov --skip-uncovered test/placebo.sh
   displayName: 'Running Unit Test'
+
+- task: PublishCodeCoverageResults@1
+  displayName: 'Publish code coverage'
+  condition: succeededOrFailed()
+  inputs:
+    codeCoverageTool: 'cobertura'
+    summaryFileLocation: $(Build.SourcesDirectory)/coverage/coverage.xml
+    failIfCoverageEmpty: true
