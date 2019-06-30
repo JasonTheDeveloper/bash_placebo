@@ -1,0 +1,19 @@
+trigger:
+- master
+
+pr:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+
+- script: |
+    sudo curl -o /usr/local/bin/shunit2 \
+      https://raw.githubusercontent.com/kward/shunit2/master/shunit2
+  displayName: 'Installing shUnit2'
+
+- script: |
+    bash test/placebo.sh
+  displayName: 'Running Unit Test'
