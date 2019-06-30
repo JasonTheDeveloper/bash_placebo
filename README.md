@@ -1,95 +1,103 @@
 # Placebo for Bash
 
-[![Build Status](https://img.shields.io/travis/alexharv074/bash_placebo.svg)](https://travis-ci.org/alexharv074/bash_placebo)
+This repository is a fork of alexharv074's [bash_placebo](https://github.com/alexharv074/bash_placebo).
 
-The Bash Placebo library is inspired by Mitch Garnaat's Python [library](https://github.com/garnaat/placebo) of the same name.
-
-It allows you to call AWS CLI commands and retrieve responses that look like real AWS CLI responses from a file-based data store. This allows you to unit test your AWS CLI shell scripts without needing to hit a real AWS account.
+Major difference between the two projects is this project is built to generate mock commands for unit testing with any bash command while the original is built specifically to mock `aws` cli commands.
 
 ## Installation
 
 The tool can be installed just by copying the script from the master branch into your path somewhere. E.g.
 
-~~~ text
-$ curl -o /usr/local/bin/placebo \
-    https://raw.githubusercontent.com/alexharv074/bash_placebo/master/placebo
-~~~
+```sh
+curl -o /usr/local/bin/placebo \
+    https://raw.githubusercontent.com/JasonTheDeveloper/bash_placebo/generic/placebo
+```
 
-## Quickstart
+## Quick Start
 
-Using record mode to save response in a file `shunit2/fixtures/aws.sh`:
+Using record mode to save response in a file `test/fixtures/`:
 
-~~~ bash
+```sh
 . placebo
-pill_attach command=aws data_path=shunit2/fixtures/aws.sh
+pill_attach data_path=test/fixtures/
 pill_record
-~~~
+```
+
+Now that you're in record mode, you can go ahead and enter your commands. Make sure you put `mock` in front of your command.
+
+For example:
+
+```sh
+mock your_command foo
+```
 
 Reading those responses back in the context of your unit tests:
 
-~~~ bash
+```sh
 . placebo
-pill_attach command=aws data_path=shunit2/fixtures/aws.sh
+pill_attach data_path=test/fixtures/
 pill_playback
-~~~
+```
 
-And to clean up:
+In playback mode, you can enter the commands you mocked earlier while in record mode like normal and Placebo will return the original response.
 
-~~~ bash
+for example:
+
+```sh
+your_command foo
+```
+
+Once you're done, you must clean up your shell environment. Not doing so will mean Placebo will still be active and will continue to override your commands mocked earlier.
+
+To clean up:
+
+```sh
 pill_detach
-~~~
+```
 
-## Code example
+## Testing Placebo
 
-A full working example of tests in the shunit2 framework that use this library can be found [here](https://github.com/alexharv074/shunit2_example).
+You'll find under `test/` a `placebo.sh` script used to test Placebo. 
 
-## Recording responses
+### Dependency
 
-Recording the responses you need to test the AWS CLI shell script you are working on is easy.
+* [shUnit2](https://github.com/kward/shunit2)
 
-From the CLI:
+### Running Unit Test
 
-~~~ text
-$ . placebo
-$ pill_attach command=aws data_path=shunit2/fixtures/aws.sh
-$ pill_record
-~~~
+With shUnit2 installed, from the root of this project in a new terminal window, run the following command:
 
-The first line includes the Placebo functions in the running shell, including an `aws` function that replaces the external Python AWS CLI script. Then we tell Placebo where to save the responses, and set it to record mode.
+```sh
+bash test/placebo.sh
+```
 
-Next, we source the script under test into the running shell too, like this:
-
-~~~ text
-$ . script_under_test some_arg some_other_arg
-~~~
-
-The script will appear to run as normal, but afterwards, responses from its calls to the AWS CLI are saved in the data path.
-
-## Manual mocking
+## Manual Mocking
 
 If you want to create fake responses manually that can be read in later by Placebo, it is quite simple. They are formatted as case statements. For example:
 
-~~~ bash
-case "aws $*" in
-'aws command subcommand some args')
+```sh
+case "dummy $*" in
+'dummy command subcommand some args')
   echo some_response
   ;;
-'aws command subcommand some other args')
+'dummy command subcommand some other args')
   echo some_other_response
   ;;
 esac
-~~~
+```
 
 ## Spies
 
-A log of all commands can be obtained using the `pill_log` function, allowing the mocks to be "spies" on AWS CLI commands called. If using shunit2, for example:
+A log of all commands can be obtained using the `pill_log` function, allowing the mocks to be "spies" on commands called. 
 
-~~~ bash
+Using [shUnit2](https://github.com/kward/shunit2), for example:
+
+```sh
 testCommandsLogged() {
   . $script_under_test
   assertEquals "$(<expected_log)" "$(pill_log)"
 }
-~~~
+```
 
 ## Contributing
 
@@ -97,13 +105,13 @@ PRs are welcome. To run the tests:
 
 Ensure you have dependencies installed:
 
-- shellcheck
-- shunit2
+- ShellCheck
+- [shUnit2](https://github.com/kward/shunit2)
 
 Then run make:
 
-~~~ text
-$ make
-~~~
+```sh
+make
+```
 
 Support is available so feel free to raise issues.
