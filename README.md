@@ -64,6 +64,10 @@ You'll find under `test/` a `placebo.sh` script used to test Placebo.
 ### Dependency
 
 * [shUnit2](https://github.com/kward/shunit2)
+* For code coverage:
+  * Ruby
+  * [bashcov](https://github.com/infertux/bashcov)
+  * [simplecov-cobertura](https://github.com/dashingrocket/simplecov-cobertura)
 
 ### Running Unit Test
 
@@ -72,6 +76,30 @@ With shUnit2 installed, from the root of this project in a new terminal window, 
 ```sh
 bash test/placebo.sh
 ```
+
+### Collecting Code Coverage
+
+Instead of running the command above to run unit test, we can use [bashcov](https://github.com/infertux/bashcov) to run our unit test and collect code coverage at the same time!
+
+Before we run `bashcov` you might want to be able to visually see your coverage results. Inside `.simplecov`, remove the following lines:
+
+```text
+require 'simplecov-cobertura'
+
+SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
+```
+
+Removing the above lines from `.simplecov`, `bashcov` will now output the code coverage results as `.HTML`. Put the lines back will change the output format.
+
+Now run the following command:
+
+```sh
+ bashcov test/placebo.sh --skip-uncovered
+```
+
+Note: `--skip-uncovered` will ignore files with 0% coverage.
+
+Once finished, you'll fine a new folder named `coverage` and inside that folder you'll find a `index.html`. Open that file in a browser to view your results.
 
 ## Manual Mocking
 
