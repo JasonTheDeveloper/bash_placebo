@@ -7,7 +7,7 @@ _usage() {
     ;;
   "attach")
     echo "Usage: pill_attach [-h] \
-command=aws data_path=path/to/responses"
+data_path=path/to/responses/"
     ;;
   "playback")
     echo "Usage: pill_playback [-h]"
@@ -31,30 +31,20 @@ if [[ "$0" == "${BASH_SOURCE[0]}" ]] ; then
   false
 fi
 
-if [ "$1" == "-h" ] ; then
+if [[ "$1" == "-h" ]] ; then
   _usage main
   true
 fi
 
 pill_attach() {
-  [ "$1" == "-h" ] && \
+  [[ "$1" == "-h" ]] && \
     _usage attach && return
 
-  # $1 is a placeholder. It is here to
-  # provide consistency with Python Placebo,
-  # and also allows possible expansion to
-  # work with other tools aside from
-  # AWS CLI.
-  #
-  { [ "$1" != "command=aws" ] || \
-    ! echo "$2" | grep -q = ; } && \
-    _usage attach && return 1
+  DATA_PATH=$(echo "$1" | cut -f2 -d=)
 
-  DATA_PATH=$(echo "$2" | cut -f2 -d=)
-
-  if [ -d "$DATA_PATH" ] ; then
+  if [[ ! -d "$DATA_PATH" ]] ; then
     echo "DATA_PATH should be a path to \
-a file but you specified a directory"
+a directory but you specified a file"
     _usage attach && return 1
   fi
 
@@ -62,26 +52,35 @@ a file but you specified a directory"
 }
 
 pill_playback() {
-  [ "$1" == "-h" ] && \
+  [[ "$1" == "-h" ]] && \
     _usage playback && return
+
+  if [[ -z "$DATA_PATH" ]] ; then
+    echo "DATA_PATH must be set. \
+Try pill_attach"
+    return 1
+  fi
+
   PILL=playback
+  local COMMAND_PATH="$(_join_path $DATA_PATH function.sh)"
+  source $COMMAND_PATH
 }
 
 pill_record() {
-  [ "$1" == "-h" ] && \
+  [[ "$1" == "-h" ]] && \
     _usage record && return
   PILL=record
 }
 
 pill_log() {
-  [ "$1" == "-h" ] && \
+  [[ "$1" == "-h" ]] && \
     _usage log && return
-  [ -f commands_log ] && \
+  [[ -f commands_log ]] && \
     cat commands_log
 }
 
 pill_detach() {
-  [ "$1" == "-h" ] && \
+  [[ "$1" == "-h" ]] && \
     _usage detach && return
 
   local f funcs
@@ -95,72 +94,111 @@ _create_new
 _update_existing
 _filter
 _record
-aws"
-  for f in $funcs ; do
+_contains
+_save_func
+mock"
+  funcs=($(echo $funcs | tr "\n\r" "\n"))
+  for f in ${funcs[@]} ; do
     unset -f "$f"
   done
+
+  if [[ "$PILL" == "playback" ]] ; then
+    local COMMAND_PATH="$(_join_path $DATA_PATH function.sh)"
+    local mock_funcs="$(bash $COMMAND_PATH -l)"
+    for f in ${mock_funcs[@]} ; do
+      unset -f "$f"
+    done
+  fi
+
   unset PILL
   unset DATA_PATH
   rm -f commands_log
 }
 
-aws() {
-  if [ -z "$DATA_PATH" ] ; then
+mock() {
+  if [[ -z "$DATA_PATH" ]] ; then
     echo "DATA_PATH must be set. \
 Try pill_attach"
     return 1
   fi
 
-  if [ -z "$PILL" ] ; then
+  if [[ -z "$PILL" ]] ; then
     echo "PILL must be set to \
-playback or record. Try pill_playback \
-or pill_record"
+or record. Try pill_record"
     return 1
   fi
 
-  if [ ! -f "$DATA_PATH" -a \
-    "$PILL" == "playback" ] ; then
+  if [ -z "$DATA_PATH" ] && \
+    [ "$PILL" == "playback" ] ; then
     echo "DATA_PATH not found. Try \
 pill_record to record one"
     return 1
   fi
 
-  echo "aws $*" | \
+  local RES_PATH="$(_join_path ${DATA_PATH} ${1}.sh)"
+  local c=$(echo $* | tr "\n\r" " ")
+
+  echo "$c" | \
     _filter >> commands_log
 
   case "$PILL" in
   "playback")
-    source "$DATA_PATH" "$@"
+    echo "PILL must be set to record. \
+  Try pill_record"
     ;;
   "record")
-    _record "$DATA_PATH" "$@"
+    _record "$RES_PATH" "$@"
+    _save_func "$DATA_PATH" "$1"
     ;;
   esac
 }
 
 # private functions.
 
+_save_func() {
+  local f="$1" ; shift
+  local a="$1"
+
+  local COMMAND_PATH="$(_join_path $f function.sh)"
+  [[ -s "$COMMAND_PATH" ]] && _update_existing "$COMMAND_PATH" \
+    || _create_new "$COMMAND_PATH" "-c"
+
+  local list=$(bash $COMMAND_PATH -l)
+  local contains=$(_contains $list $a)
+
+  if [[ ! $contains ]] ; then
+    local s="$a() {
+  source "$RES_PATH" "\$@"
+}
+"
+    echo $s | cat - $COMMAND_PATH > temp && mv temp $COMMAND_PATH
+  fi
+}
+
 _record() {
   local f="$1" ; shift
+  local a="$1"
 
-  [ -s "$f" ] && _update_existing "$f" \
-    || _create_new "$f"
+  [[ -s "$f" ]] && _update_existing "$f" \
+    || _create_new "$f" "$a"
+
+  local c=$(echo $@ | tr "\n\r" " ")
 
   # open another case.
   cat <<EOD | _filter >> "$f"
-'aws $@')
+'$c')
   cat <<'EOF'
 EOD
 
   # insert response data.
-  command aws "$@" | tee -a "$f"
+  command "$@" | tee -a "$f"
 
   # close the case and the block.
   cat >> "$f" <<EOD
 EOF
   ;;
 *)
-  echo "No responses for: aws \$*"
+  echo "No responses for: $a \$*"
   ;;
 esac
 EOD
@@ -168,8 +206,23 @@ EOD
 
 _create_new() {
   local f=$1
+  local a=$2
   mkdir -p "$(dirname "$f")"
-  echo 'case "aws $*" in' > "$f"
+
+  if [[ "$a" == "-c" ]] ; then
+    cat >> "$f" <<EOD
+list () {
+  declare -f | awk '/ \(\) $/ && !/^list / {print \$1}'
+}
+
+if [[ "\$1" == "-l" ]] ; then
+  list
+  true
+fi
+EOD
+  else
+    echo 'case "'$a' $*" in' > "$f"
+  fi
 }
 
 _update_existing() {
@@ -181,6 +234,14 @@ _update_existing() {
 _filter() {
   sed -e 's/  *$//' \
       -e "s/  *'/'/"
+}
+
+_join_path() {
+    echo "${1:+$1/}$2" | sed 's#//#/#g'
+}
+
+_contains() {
+    [[ $1 =~ (^|[[:space:]])$2($|[[:space:]]) ]] && echo true || false
 }
 
 # vim: ft=sh
