@@ -1,5 +1,7 @@
 # Placebo for Bash
 
+[![Build Status](https://dev.azure.com/aussiedevcrew/Bash-Placebo/_apis/build/status/JasonTheDeveloper.bash_placebo?branchName=master)](https://dev.azure.com/aussiedevcrew/Bash-Placebo/_build/latest?definitionId=19&branchName=master)
+
 This repository is a fork of alexharv074's [bash_placebo](https://github.com/alexharv074/bash_placebo).
 
 Major difference between the two projects is this project is built to generate mock commands for unit testing with any bash command while the original is built specifically to mock `aws` cli commands.
@@ -10,7 +12,7 @@ The tool can be installed just by copying the script from the master branch into
 
 ```sh
 curl -o /usr/local/bin/placebo \
-    https://raw.githubusercontent.com/JasonTheDeveloper/bash_placebo/generic/placebo
+    https://raw.githubusercontent.com/JasonTheDeveloper/bash_placebo/master/placebo
 ```
 
 ## Quick Start
