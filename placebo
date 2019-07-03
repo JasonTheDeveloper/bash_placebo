@@ -81,8 +81,12 @@ pill_log() {
 }
 
 pill_detach() {
-  [[ "$1" == "-h" ]] && \
-    _usage detach && return
+  while test $# -gt 0; do
+    case "$1" in
+        -h) _usage detach; return;;
+         *) break;;
+    esac
+  done
 
   local f funcs
   funcs="_usage
