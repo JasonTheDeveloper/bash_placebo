@@ -229,18 +229,18 @@ list() {
 }
 
 _check_response() {
-  while test $# -gt 0; do
-    case "$1" in
-        -r) shift; RES=$1; shift;;
-        -c) shift; CODE=$1; shift;;
+  while test "\$#" -gt 0; do
+    case "\$1" in
+        -r) shift; RES="\$1"; shift;;
+        -c) shift; CODE="\$1"; shift;;
          *) break;;
     esac
   done
 
-  if [[ $CODE -ne 0 ]]; then
-    exit $CODE
+  if [[ "\$CODE" -ne 0 ]]; then
+    exit "\$CODE"
   else
-    echo $RES
+    echo "\$RES"
   fi
 }
 
