@@ -174,7 +174,7 @@ _save_func() {
 
   if [[ ! $contains ]] ; then
     local s="$a() {
-  _check_response -r \$(source "$RES_PATH" "\$@") -c \$?
+  _check_response -r "\$(source "$RES_PATH" "\$@")" -c "\$?"
 }
 "
     echo $s | cat - $COMMAND_PATH > temp && mv temp $COMMAND_PATH
