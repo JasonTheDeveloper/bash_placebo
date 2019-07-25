@@ -4,8 +4,6 @@
 
 This repository is a fork of alexharv074's [bash_placebo](https://github.com/alexharv074/bash_placebo).
 
-Major difference between the two projects is this project is built to generate mock commands for unit testing with any bash command while the original is built specifically to mock `aws` cli commands.
-
 ## Installation
 
 The tool can be installed just by copying the script from the master branch into your path somewhere. E.g.
