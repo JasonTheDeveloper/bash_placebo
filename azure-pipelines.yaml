@@ -21,9 +21,13 @@ steps:
     gem install simplecov-cobertura
   displayName: 'Installing Dependencies'
 
-- script: |
-    bashcov --skip-uncovered test/placebo.sh
+- task: Bash@3
   displayName: 'Running Unit Test'
+  inputs:
+    targetType: 'inline'
+    script: |
+      bashcov --skip-uncovered "test/placebo.sh"
+      exit $?
 
 - task: PublishCodeCoverageResults@1
   displayName: 'Publish code coverage'

@@ -81,8 +81,12 @@ pill_log() {
 }
 
 pill_detach() {
-  [[ "$1" == "-h" ]] && \
-    _usage detach && return
+  while test $# -gt 0; do
+    case "$1" in
+        -h) _usage detach; return;;
+         *) break;;
+    esac
+  done
 
   local f funcs
   funcs="_usage
@@ -170,7 +174,7 @@ _save_func() {
 
   if [[ ! $contains ]] ; then
     local s="$a() {
-  _check_response \$(source "$RES_PATH" "\$@") \$?
+  _check_response -r \"\$(source "$RES_PATH" "\$@")\" -c \"\$?\"
 }
 "
     echo $s | cat - $COMMAND_PATH > temp && mv temp $COMMAND_PATH
@@ -220,16 +224,24 @@ _create_new() {
   if [[ "$a" == "-c" ]] ; then
     cat >> "$f" <<EOD
 
-_check_response() {
-  if [[ $2 -ne 0 ]]; then
-    exit $2
-  else
-    echo $1
-  fi
-}
-
 list() {
   declare -f | awk '/ \(\) $/ && !/^list / {print \$1}'
+}
+
+_check_response() {
+  while test "\$#" -gt 0; do
+    case "\$1" in
+        -r) shift; RES="\$1"; shift;;
+        -c) shift; CODE="\$1"; shift;;
+         *) break;;
+    esac
+  done
+
+  if [[ "\$CODE" -ne 0 ]]; then
+    exit "\$CODE"
+  else
+    echo "\$RES"
+  fi
 }
 
 if [[ "\$1" == "-l" ]] ; then
